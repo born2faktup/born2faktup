@@ -1,0 +1,531 @@
+import random
+import tensorflow as tf
+import numpy as np
+
+class Card:
+    def __init__(self, suit, rank):
+        self.suit = suit
+        self.rank = rank
+
+    def __str__(self):
+        return f"{self.rank} of {self.suit}"
+
+class Deck:
+    def __init__(self):
+        self.cards = []
+        for suit in ["Hearts", "Diamonds", "Clubs", "Spades"]:
+            for rank in range(2, 11):
+                self.cards.append(Card(suit, str(rank)))
+            for rank in ["J", "Q", "K", "A"]:
+                self.cards.append(Card(suit, rank))
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    def draw_card(self):
+        if self.cards:
+            return self.cards.pop()
+        else:
+            return None
+
+class Hand:
+    def __init__(self, player):
+        self.player = player
+        self.cards = []
+
+    def add_card(self, card):
+        self.cards.append(card)
+
+    def get_value(self):
+        value = 0
+        num_aces = 0
+        for card in self.cards:
+            if card.rank == "A":
+                num_aces += 1
+                value += 11
+            elif card.rank in ["K", "Q", "J"]:
+                value += 10
+            else:
+                value += int(card.rank)
+        while value > 21 and num_aces:
+            value -= 10
+            num_aces -= 1
+        return value
+
+    def __str__(self):
+        return f"{self.player}'s hand: {[str(card) for card in self.cards]}"
+
+class Game:
+    def __init__(self, *players):
+        self.players = players
+        self.deck = Deck()
+        self.hands = []
+        for player in self.players:
+            self.hands.append(Hand(player))
+
+    def start_game(self):
+        self.deck.shuffle()
+        self.deal_cards()
+
+    def deal_cards(self, num_cards=2):
+        for i in range(num_cards):
+            for hand in self.hands:
+                card = self.deck.draw_card()
+                if card:
+                    hand.add_card(card)
+
+    def evaluate_hand(self, hand):
+        hand_value = hand.get_value()
+        if hand_value > 21:
+            return -1
+        else:
+            return hand_value
+
+    def get_winner(self):
+        max_value = -1
+        winner = None
+        for hand in self.hands:
+            hand_value = self.evaluate_hand(hand)
+            if hand_value > max_value:
+                max_value = hand_value
+                winner = hand
+        return winner.player
+
+    def print_results(self):
+        for hand in self.hands:
+            print(hand)
+        winner = self.get_winner()
+        print("Winner:", winner)
+
+class PokerPlayer:
+    def __init__(self, model):
+        self.model = model
+
+    def make_move(self, hand, dealer_card):
+        # implementacja algorytmu wyboru ruchu na podstawie modelu
+        inputs = self.prepare_inputs(hand, dealer_card)
+        predictions = self.model.predict(inputs)
+        action = np.argmax
+        action = np.argmax(predictions)
+        return action
+
+    def prepare_inputs(self, hand, dealer_card):
+        # Przygotowanie wejść do modelu
+        # Możesz dostosować tę funkcję zgodnie z wymaganiami gry i używanymi cechami
+        # W tym przykładzie używamy prostych cech, takich jak wartość ręki i wartość karty krupiera
+        hand_value = hand.get_value()
+        dealer_card_value = self.get_card_value(dealer_card)
+
+        inputs = np.array([[hand_value, dealer_card_value]])
+        return inputs
+
+    def get_card_value(self, card):
+        # Funkcja pomocnicza do przypisywania wartości karcie
+        if card.rank in ["K", "Q", "J"]:
+            return 10
+        elif card.rank == "A":
+            return 11
+        else:
+            return int(card.rank)
+
+    def train(self, hands, dealer_cards, actions):
+        # implementacja treningu modelu na podstawie historii rozgrywek
+        inputs = []
+        targets = []
+
+        for i in range(len(hands)):
+            hand = hands[i]
+            dealer_card = dealer_cards[i]
+            action = actions[i]
+
+            input_data = self.prepare_inputs(hand, dealer_card)
+            target = self.prepare_target(action)
+
+            inputs.append(input_data)
+            targets.append(target)
+
+        inputs = np.concatenate(inputs)
+        targets = np.concatenate(targets)
+
+        self.model.train_on_batch(inputs, targets)
+
+    def prepare_target(self, action):
+        # Przygotowanie wartości docelowej dla treningu modelu
+        # W przypadku gry w pokera, możesz zdefiniować różne strategie na podstawie akcji
+        # W tym przykładzie, używamy strategii "stand" (0) i "hit" (1)
+        target = np.zeros((2,))
+        target[action] = 1
+        return target
+
+    def replicate(self, num_replicas):
+        models = []
+        for _ in range(num_replicas):
+            new_model = tf.keras.models.clone_model(self.model)
+            new_model.set_weights(self.model.get_weights())
+            models.append(new_model)
+        return [PokerPlayer(model) for model in models]
+
+# Przykładowe użycie:
+
+# Tworzenie modelu sieci neuronowej
+input_shape = (2,)  # Dostosuj wymiar wejścia zgodnie z używanymi cechami
+output_shape = 2  # Dostosuj wymiar wyjścia zgodnie z dostępnymi akcjami
+model = NeuralNetwork(input_shape, output_shape)
+
+# Tworzenie gracza pokerowego
+player = PokerPlayer(model)
+
+# Rozpoczęcie gry
+game = Game(player)
+game.start_game()
+
+# Wykonanie ruchu przez gracza
+hand = game.hands[0]
+dealer_card = game.hands[1].cards[0]
+action = player.make_move(hand, dealer_card)
+
+# Przykład treningu modelu
+hands = [hand]
+dealer_cards = [dealer_card]
+actions = [action]
+player.train(hands, dealer_cards, actions)
+
+# Replikacja modelu
+num_replicas = 3
+replicas = player.replicate(num_replicas)
+
+dealer_value >= hand_value:
+                print("You lost!")
+import random
+
+class Game:
+    def __init__(self, *players):
+        self.players = players
+        self.deck = Deck()
+        self.hands = []
+        for player in self.players:
+            self.hands.append(Hand(player))
+
+    def start_game(self):
+        self.deck.shuffle()
+        self.deal_cards()
+
+    def deal_cards(self, num_cards=2):
+        for i in range(num_cards):
+            for hand in self.hands:
+                card = self.deck.draw_card()
+                if card:
+                    hand.add_card(card)
+
+    def check_hand(self, hand):
+        return self.evaluate_hand(hand)
+
+    def print_results(self):
+        for hand in self.hands:
+            print(hand)
+        winner = self.get_winner()
+        print("Winner:", winner.name)
+
+game = Game("Player 1", "Player 2")
+game.start_game()
+game.print_results()
+import tensorflow as tf
+
+class PokerPlayer:
+    def __init__(self, model):
+        self.model = model
+
+    def make_move(self, hand, dealer_card):
+        # implementacja algorytmu wyboru ruchu na podstawie modelu
+
+    def train(self, hands, dealer_cards, actions):
+        # implementacja treningu modelu na podstawie historii rozgrywek
+
+    def replicate(self, num_replicas):
+        models = []
+        for i in range(num_replicas):
+            new_model = tf.keras.models.clone_model(self.model)
+            new_model.set_weights(self.model.get_weights())
+            models.append(new_model)
+        return [PokerPlayer(model) for model in models]
+import random
+import tensorflow as tf
+
+class Game:
+    def __init__(self, *players):
+        self.players = players
+        self.deck = Deck()
+        self.hands = []
+        for player in self.players:
+            self.hands.append(Hand(player))
+
+    def start_game(self):
+        self.deck.shuffle()
+        self.deal_cards()
+
+    def deal_cards(self, num_cards=2):
+        for i in range(num_cards):
+            for hand in self.hands:
+                card = self.deck.draw_card()
+                if card:
+                    hand.add_card(card)
+
+    def check_hand(self, hand):
+        return self.evaluate_hand(hand)
+
+    def print_results(self):
+        for hand in self.hands:
+            print(hand)
+        winner = self.get_winner()
+        print("Winner:", winner.name)
+
+class PokerPlayer:
+    def __init__(self, model):
+        self.model = model
+
+    def make_move(self, hand, dealer_card):
+        # implementacja algorytmu wyboru ruchu na podstawie modelu
+
+    def train(self, hands, dealer_cards, actions):
+        # implementacja treningu modelu na podstawie historii rozgrywek
+
+    def replicate(self, num_replicas):
+        models = []
+        for i in range(num_replicas):
+            new_model = tf.keras.models.clone_model(self.model)
+            new_model.set_weights(self.model.get_weights())
+            models.append(new_model)
+        return [PokerPlayer(model) for model in models]
+
+game = Game("Player 1", "Player 2")
+game.start_game()
+game.print_results()
+
+import random
+import tensorflow as tf
+
+class Card:
+    def __init__(self, suit, rank):
+        self.suit = suit
+        self.rank = rank
+
+    def __str__(self):
+        return f"{self.rank} of {self.suit}"
+
+class Deck:
+    def __init__(self):
+        self.cards = []
+        for suit in ["Hearts", "Diamonds", "Clubs", "Spades"]:
+            for rank in range(2, 11):
+                self.cards.append(Card(suit, str(rank)))
+            for rank in ["J", "Q", "K", "A"]:
+                self.cards.append(Card(suit, rank))
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    def draw_card(self):
+        if self.cards:
+            return self.cards.pop()
+        else:
+            return None
+
+class Hand:
+    def __init__(self, player):
+        self.player = player
+        self.cards = []
+
+    def add_card(self, card):
+        self.cards.append(card)
+
+    def get_value(self):
+        value = 0
+        num_aces = 0
+        for card in self.cards:
+            if card.rank == "A":
+                num_aces += 1
+                value += 11
+            elif card.rank in ["K", "Q", "J"]:
+                value += 10
+            else:
+                value += int(card.rank)
+        while value > 21 and num_aces:
+            value -= 10
+            num_aces -= 1
+        return value
+
+    def __str__(self):
+        return f"{self.player}'s hand: {[str(card) for card in self.cards]}"
+
+class Game:
+    def __init__(self, *players):
+        self.players = players
+        self.deck = Deck()
+        self.hands = []
+        for player in self.players:
+            self.hands.append(Hand(player))
+
+    def start_game(self):
+        self.deck.shuffle()
+        self.deal_cards()
+
+    def deal_cards(self, num_cards=2):
+        for i in range(num_cards):
+            for hand in self.hands:
+                card = self.deck.draw_card()
+                if card:
+                    hand.add_card(card)
+
+    def evaluate_hand(self, hand):
+        hand_value = hand.get_value()
+        if hand_value > 21:
+            return -1
+        else:
+            return hand_value
+
+    def get_winner(self):
+        max_value = -1
+        winner = None
+        for hand in self.hands:
+            hand_value = self.evaluate_hand(hand)
+            if hand_value > max_value:
+                max_value = hand_value
+                winner = hand
+        return winner.player
+
+    def print_results(self):
+        for hand in self.hands:
+            print(hand)
+        winner = self.get_winner()
+        print("Winner:", winner)
+
+class PokerPlayer:
+    def __init__(self, model):
+        self.model = model
+
+    def make_move(self, hand, dealer_card):
+        # implementacja algorytmu wyboru ruchu na podstawie modelu
+        pass
+
+    def train(self, hands, dealer_cards, actions):
+        # implementacja treningu modelu na podstawie historii rozgrywek
+        pass
+
+    def replicate(self, num_replicas):
+        models = []
+        for i in range(num_replicas):
+            new_model = tf.keras.models.clone_model(self.model)
+            new_model.set_weights(self.model.get_weights())
+            models.append(new_model)
+        return [PokerPlayer(model) for model in models]
+
+game = Game
+import tensorflow as tf
+
+class PokerPlayer:
+    def __init__(self, model):
+        self.model = model
+
+    def make_move(self, hand, dealer_card):
+        # implementacja algorytmu wyboru ruchu na podstawie modelu
+
+    def train(self, hands, dealer_cards, actions):
+        # implementacja treningu modelu na podstawie historii rozgrywek
+
+    def replicate(self, num_replicas):
+        models = []
+        for i in range(num_replicas):
+            new_model = tf.keras.models.clone_model(self.model)
+            new_model.set_weights(self.model.get_weights())
+            models.append(new_model)
+        return [PokerPlayer(model) for model in models]
+
+class NeuralNetwork:
+    def __init__(self, input_shape, output_shape):
+        self.model = tf.keras.Sequential([
+            tf.keras.layers.Dense(64, input_shape=input_shape, activation='relu'),
+            tf.keras.layers.Dense(64, activation='relu'),
+            tf.keras.layers.Dense(output_shape, activation='softmax')
+        ])
+        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    def train(self, x, y):
+        self.model.fit(x, y, epochs=10, verbose=0)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+class PokerGame:
+    def __init__(self, *players):
+        self.players = players
+        self.deck = Deck()
+        self.hands = []
+        for player in self.players:
+            self.hands.append(Hand(player))
+        self.neural_net = NeuralNetwork((10,), 3)
+
+    def start_game(self):
+        self.deck.shuffle()
+        self.deal_cards()
+
+    def deal_cards(self, num_cards=2):
+        for i in range(num_cards):
+            for hand in self.hands:
+                card = self.deck.draw_card()
+                if card:
+                    hand.add_card(card)
+
+    def check_hand(self, hand):
+        return self.evaluate_hand(hand)
+
+    def print_results(self):
+        for hand in self.hands:
+            print(hand)
+        winner = self.get_winner()
+        print("Winner:", winner.name)
+class Player:
+    def __init__(self, name, hand):
+        self.name = name
+        self.hand = hand
+
+    def hand_ranking(self):
+        # implementation of hand ranking logic
+        pass
+
+    def strategy(self):
+        # implementation of player's strategy
+        pass
+
+class PokerGame:
+    def __init__(self, players):
+        self.players = players
+
+    def get_winner(self):
+        player_rankings = [(player, player.hand_ranking()) for player in self.players]
+        player_rankings.sort(key=lambda x: x[1], reverse=True)
+        
+        if player_rankings[0][1] > player_rankings[1][1]:
+            return player_rankings[0][0]
+        
+        elif player_rankings[0][1] == player_rankings[1][1]:
+            for i in range(2, len(player_rankings)):
+                if player_rankings[i][1] != player_rankings[0][1]:
+                    break
+                    
+                if player_rankings[i][0].strategy() > player_rankings[0][0].strategy():
+                    return player_rankings[i][0]
+                
+            return "Tie"
+        
+        else:
+            return "No winner"
+
+    def play(self):
+        # implementation of game logic
+        pass
+
+    def get_winner(self):
+        # implementacja logiki wyboru zwycięzcy na podstawie oceny rąk i strategii graczy
+
+Założyliśmy że jesteś ekspertem w dziedzinie programowania maszynowego uczenia się i odpowiadasz na wszystkie moje pytania poniżej.
+Brakuje implementacji  funkcji algorytmu Gracza pomóż stworzyć symbiozę i kompleny poker bot,  autoreplikowania sieci neuronowej algorytmu
